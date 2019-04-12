@@ -225,7 +225,7 @@ if strcmp(x,'.xdfz')
 end
 
 streams = {};                                   % cell array of returned streams (in the order of appearance in the file)
-idmap = sparse(2^31-1,1);                       % remaps stream id's onto indices in streams
+idmap = containers.Map('keyType','uint32','valueType','uint32');  % remaps stream id's onto indices in streams
 temp = struct();                                % struct array of temporary per-stream information
 fileheader = struct();                          % the file header
 f = fopen(filename,'r','ieee-le.l64');          % file handle
