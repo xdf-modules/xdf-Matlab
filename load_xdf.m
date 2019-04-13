@@ -334,6 +334,9 @@ while 1
             idmap(streamid) = id; %#ok<SPRIX>
             % read [Content]
             header = parse_xml_struct(fread(f,len-6,'*char')');
+            if ~isfield(header.info, 'desc')
+                header.info.desc = [];
+            end
             streams{id} = header;
             if opts.Verbose
                 fprintf(['  found stream ' header.info.name '\n']); end
