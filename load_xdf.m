@@ -327,6 +327,49 @@ while 1
                 warning(e.identifier,e.message);
                 break;
             end
+            case 7 % read [Samples] chunk
+            try
+                % read [StreamId]
+                s = fread(f,1,'uint32');
+                id = idmap(s);
+                num = fread(f,1,'*uint32');
+                num_channels = fread(f,1,'*uint32');
+                valuetype = fread(f,1,'*uint8');
+                timestamps = fread(f,num,'*float64')';
+                if ~timestamps(1)
+                    timestamps(1) = temp(id).last_timestamp + temp(id).sampling_interval;
+                end
+                for i = find(timestamps == 0)
+                    timestamps(i) = timestamps(i-1) + temp(id).sampling_interval;
+                end
+                temp(id).last_timestamp = timestamps(end);
+                assert(num_channels == temp(id).chns, 'Chunk channels (%d) != header channels (%d)', num_channels, temp(id).chns);
+                valuetypes = {'float32','float64',NaN, 'int32','int16','int8','int64'};
+                if valuetype == 3 % string
+                    strlens = fread(f, num_channels * num, '*uint32')';
+                    strs = fread(f, sum(strlens), '*char')';
+                    slices = [0, cumsum(strlens)];
+                    values = cell(1, num_channels*num);
+                    for i=1:num_channels*num
+                        values{i} = strs(slices(i)+1:slices(i+1));
+                    end
+                    values = reshape(values, [num_channels, num]);
+                else
+                    values = fread(f, [num_channels, num], valuetypes{valuetype});
+                end
+                % optionally send through the OnChunk function
+                if ~isempty(opts.OnChunk)
+                    [values,timestamps,streams{id}] = opts.OnChunk(values,timestamps,streams{id},id); end %#ok<*AGROW>
+                % append to the time series...
+                temp(id).time_series{end+1} = values;
+                temp(id).time_stamps{end+1} = timestamps;
+            catch e
+                % an error occurred (perhaps a chopped-off file): emit a warning
+                % and return the file up to this point
+                disp(['Error:', e.message])
+                warning(e.identifier, 'Error in chunk: %s', e.message);
+                break;
+            end
         case 2 % read [StreamHeader] chunk
             % read [StreamId]
             streamid = fread(f,1,'uint32');
