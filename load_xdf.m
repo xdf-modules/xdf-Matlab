@@ -572,6 +572,8 @@ else
         else
             temp(k).effective_srate = 0;
         end
+		% transfer the information into the output structs
+		streams{k}.info.effective_srate = temp(k).effective_srate;
     end
 end
 
