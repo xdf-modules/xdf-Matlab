@@ -246,19 +246,19 @@ if ~have_mex
         LIBVERSION, '/', fname];
     [this_path, this_name, this_ext] = fileparts(mfilename('fullpath'));
     try
-        have_mex = true;
         websave(fullfile(this_path, fname), mex_url);
+        have_mex = true;
     catch ME
         if opts.Verbose
             disp(['Unable to download the compiled binary version for your platform.',...
                 ' Attempting to compile...']);
             try
                 mex(fullfile(this_path, 'load_xdf_innerloop.c'), '-outdir', this_path);
+                have_mex = true;
             catch ME
                 disp('Unable to compile, falling back to slower uncompiled code.');
             end
         end
-        have_mex = false;
         %rethrow(ME);
     end
 end
