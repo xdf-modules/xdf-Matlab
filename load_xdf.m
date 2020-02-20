@@ -242,7 +242,7 @@ if ~have_mex
     end
     
     fname = ['load_xdf_innerloop.' mexext];
-    mex_url = ['https://github.com/sccn/xdf/releases/download/v',...
+    mex_url = ['https://github.com/xdf-modules/xdf-Matlab/releases/download/v',...
         LIBVERSION, '/', fname];
     [this_path, this_name, this_ext] = fileparts(mfilename('fullpath'));
     try
