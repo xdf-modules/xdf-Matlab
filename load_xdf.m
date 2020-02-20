@@ -251,7 +251,12 @@ if ~have_mex
     catch ME
         if opts.Verbose
             disp(['Unable to download the compiled binary version for your platform.',...
-                ' Using the slow MATLAB code instead.']);
+                ' Attempting to compile...']);
+            try
+                mex(fullfile(this_path, 'load_xdf_innerloop.c'), '-outdir', this_path);
+            catch ME
+                disp('Unable to compile, falling back to slower uncompiled code.');
+            end
         end
         have_mex = false;
         %rethrow(ME);
