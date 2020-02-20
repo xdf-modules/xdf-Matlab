@@ -1,4 +1,6 @@
-#include "mex.h"
+#include <mex.h>
+#include <string.h>
+#include <stdint.h>
 /*
  * [Values,Timestamps] = load_xdf_innerloop(Data, NumChannels, FormatString, SamplingInterval, LastTimestamp);
  * MEX kernel that implements the inner loop of the load_xdf function.
@@ -60,7 +62,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double *timestamps;
     
     /* variables */
-    unsigned num_samples, s, c, sample_bytes;
+    mwSize num_samples, s, c, sample_bytes;
     value_format_t format_code;
     mwSize string_dims[2];
     
@@ -77,7 +79,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* get inputs */
     data = (unsigned char*)mxGetData(prhs[0]);
     num_channels = (unsigned)(*((double*)mxGetData(prhs[1])));
-    mxGetNChars_700(prhs[2], format_string, mxGetNumberOfElements(prhs[2])+1);
+    mxGetNChars(prhs[2], format_string, mxGetNumberOfElements(prhs[2])+1);
     sampling_interval = *((double*)mxGetData(prhs[3]));
     last_timestamp = *((double*)mxGetData(prhs[4]));
 
@@ -105,7 +107,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     if (bytes == 1)
         num_samples = *data++;
     if (bytes == 4) {
-        num_samples = *(unsigned*)data;
+        num_samples = *(uint32_t*)data;
         data += 4;
     }
     if (bytes == 8)
@@ -177,7 +179,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
                 if (bytes == 1)
                     num_chars = *data++;
                 if (bytes == 4) {
-                    num_chars = *(unsigned*)data;
+                    num_chars = *(uint32_t*)data;
                     data += bytes;
                 }
                 if (bytes == 8)
