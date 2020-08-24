@@ -527,7 +527,7 @@ if opts.HandleJitterRemoval
             
                 % identify breaks in the data
                 diffs = diff(temp(k).time_stamps);
-                breaks_at = diffs > max(opts.JitterBreakThresholdSeconds,opts.JitterBreakThresholdSamples*temp(k).sampling_interval);
+                breaks_at = abs(diffs) > max(opts.JitterBreakThresholdSeconds,opts.JitterBreakThresholdSamples*temp(k).sampling_interval);
                 if any(breaks_at)
                     % turn the break mask into a cell array of [begin,end] index ranges
                     tmp = find(breaks_at)';
