@@ -356,6 +356,7 @@ while 1
             if temp(id).srate > 0
                 temp(id).sampling_interval = 1/temp(id).srate;
             else
+			    warning('Nominal sampling rate of stream %s is 0. Calculated effective sampling rate might not be meaningful, relying on this rate is not recommended.', header.info.name);
                 temp(id).sampling_interval = 0;
             end
             % fread parsing format for data values
@@ -571,7 +572,14 @@ if opts.HandleJitterRemoval
 else
     % calculate effective sampling rate
     for k=1:length(temp)
-        temp(k).effective_srate = (length(temp(k).time_stamps) - 1) / (temp(k).time_stamps(end) - temp(k).time_stamps(1)); end
+        if ~isempty(temp(k).time_stamps)
+            temp(k).effective_srate = (length(temp(k).time_stamps) - 1) / (temp(k).time_stamps(end) - temp(k).time_stamps(1));
+        else
+            temp(k).effective_srate = 0;
+        end
+		% transfer the information into the output structs
+		streams{k}.info.effective_srate = temp(k).effective_srate;
+    end
 end
 
 % copy the information into the output
