@@ -3,7 +3,7 @@ function [streams,fileheader] = load_xdf(filename,varargin)
 % Import an XDF file.
 % [Streams,FileHeader] = load_xdf(Filename, Options...)
 %
-% This is a MATLAB importer for mult-stream XDF (Extensible Data Format) recordings. All
+% This is a MATLAB importer for multi-stream XDF (Extensible Data Format) recordings. All
 % information covered by the XDF 1.0 specification is imported, plus any additional meta-data
 % associated with streams or with the container file itself.
 %
@@ -231,6 +231,7 @@ fileheader = struct();                          % the file header
 f = fopen(filename,'r','ieee-le.l64');          % file handle
 closer = onCleanup(@()close_file(f,filename));  % object that closes the file when the function exits
 
+filesize = getfield(dir(filename),'bytes');
 
 % there is a fast C mex file for the inner loop, but it's 
 % not necessarily available for every platform
@@ -264,9 +265,9 @@ if ~have_mex
 end
 
 
-% ======================
-% === parse the file ===
-% ======================
+% ======================================================
+% === parse the file ([SomeText] refers to XDF Spec) ===
+% ======================================================
 
 % read [MagicCode]
 if ~strcmp(fread(f,4,'*char')','XDF:')
@@ -279,9 +280,21 @@ while 1
     % read [NumLengthBytes], [Length]
     len = double(read_varlen_int(f));
     if ~len
-        break; end
+        if ftell(f) < filesize-1024
+            fprintf('  got zero-length chunk, scanning forward to next boundary chunk.\n');
+            scan_forward(f);
+            continue;
+        else
+            if opts.Verbose
+                fprintf('  reached end of file.\n'); end
+            break;
+        end
+    end
     % read [Tag]
-    switch fread(f,1,'uint16')
+    tag = fread(f,1,'uint16');
+    if opts.Verbose
+        fprintf('  read tag: %i at %d bytes, length=%d\n',tag,ftell(f),len); end
+    switch tag
         case 3 % read [Samples] chunk
             try
                 % read [StreamId]
@@ -328,9 +341,9 @@ while 1
                 temp(id).time_stamps{end+1} = timestamps;
             catch e
                 % an error occurred (perhaps a chopped-off file): emit a warning
-                % and return the file up to this point
-                warning(e.identifier, '%s', e.message);
-                break;
+                % and scan forward to the next recognized chunk.
+                fprintf('  got error "%s" (%s), scanning forward to next boundary chunk.\n',e.identifier,e.message);
+                scan_forward(f);
             end
         case 2 % read [StreamHeader] chunk
             % read [StreamId]
@@ -372,14 +385,23 @@ while 1
         case 1 % read [FileHeader] chunk
             fileheader = parse_xml_struct(fread(f,len-2,'*char')');
         case 4 % read [ClockOffset] chunk
-            % read [StreamId]
-            id = idmap(fread(f,1,'uint32'));
-            % read [CollectionTime]
-            temp(id).clock_times(end+1) = fread(f,1,'double');
-            % read [OffsetValue]
-            temp(id).clock_values(end+1) = fread(f,1,'double');
+            try
+                % read [StreamId]
+                id = idmap(fread(f,1,'uint32'));
+                % read [CollectionTime]
+                temp(id).clock_times(end+1) = fread(f,1,'double');
+                % read [OffsetValue]
+                temp(id).clock_values(end+1) = fread(f,1,'double');
+            catch e
+                % an error occurred (perhaps a chopped-off file): emit a
+                % warning and scan forward to the next recognized chunk
+                fprintf('  got error "%s" (%s), scanning forward to next boundary chunk.\n',e.identifier,e.message);
+                scan_forward(f);
+            end
+        case 5 % read [Boundary] chunk
+            fread(f, len-2, '*uint8');
         otherwise
-            % skip other chunk types (Boundary, ...)
+            % skip other chunk types
             fread(f,len-2,'*uint8');
     end
 end
@@ -513,13 +535,9 @@ if opts.HandleJitterRemoval
     % delays)
     if opts.Verbose
         disp('  performing jitter removal...'); end
-    
-              
     for k=1:length(temp)
-        
         if ~isempty(temp(k).time_stamps) && temp(k).srate
             
-   
             if isfield(streams{k}.info.desc, 'synchronization') && ... 
                 isfield(streams{k}.info.desc.synchronization, 'can_drop_samples') && ...
                 strcmp(streams{k}.info.desc.synchronization.can_drop_samples, 'true')        
@@ -575,7 +593,7 @@ else
         if ~isempty(temp(k).time_stamps)
             temp(k).effective_srate = (length(temp(k).time_stamps) - 1) / (temp(k).time_stamps(end) - temp(k).time_stamps(1));
         else
-            temp(k).effective_srate = 0;
+            temp(k).effective_srate = 0;  % BCILAB sets this to NaN
         end
 		% transfer the information into the output structs
 		streams{k}.info.effective_srate = temp(k).effective_srate;
