@@ -244,7 +244,7 @@ if ~have_mex
     fname = ['load_xdf_innerloop.' mexext];
     mex_url = ['https://github.com/xdf-modules/xdf-Matlab/releases/download/v',...
         LIBVERSION, '/', fname];
-    [this_path, this_name, this_ext] = fileparts(mfilename('fullpath'));
+    [this_path, ~, ~] = fileparts(mfilename('fullpath'));
     try
         websave(fullfile(this_path, fname), mex_url);
         have_mex = true;
@@ -274,7 +274,7 @@ if ~strcmp(fread(f,4,'*char')','XDF:')
 
 % for each chunk...
 
-if opts.Verbose; fprintf('Now reading from %s ...', filename); end;
+if opts.Verbose; fprintf('Now reading from %s ...', filename); end
 while 1
     % read [NumLengthBytes], [Length]
     len = double(read_varlen_int(f));
@@ -329,14 +329,14 @@ while 1
             catch e
                 % an error occurred (perhaps a chopped-off file): emit a warning
                 % and return the file up to this point
-                warning(e.identifier,e.message);
+                warning(e.identifier, '%s', e.message);
                 break;
             end
         case 2 % read [StreamHeader] chunk
             % read [StreamId]
             streamid = fread(f,1,'uint32');
             id = length(streams)+1;
-            idmap(streamid) = id; %#ok<SPRIX>
+            idmap(streamid) = id; 
             % read [Content]
             header = parse_xml_struct(fread(f,len-6,'*char')');
             if ~isfield(header.info, 'desc')
@@ -673,8 +673,9 @@ end
 % close the file and delete temporary data
 function close_file(f,filename)
 fclose(f);
-if strfind(filename,'_temp_uncompressed.xdf')
-    delete(filename); end
+if contains(filename, '_temp_uncompressed.xdf')
+    delete(filename);
+end
 end
 
 
@@ -1066,7 +1067,7 @@ for iMrk = 1:length( streams{ mkStream }.time_series )
             streams{ mkStream }.time_series{ iMrk } = MrkInfo.str;
         else
             warning( 'No corresponding sample found in marker channel for indexed marker %s. Removing...', MrkInfo.idx )
-            clearMarkers = [ clearMarkers iMrk ]; %#ok<AGROW>
+            clearMarkers = [ clearMarkers iMrk ]; 
         end
 
     end
