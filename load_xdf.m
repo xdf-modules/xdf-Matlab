@@ -174,7 +174,7 @@ function [streams,fileheader] = load_xdf(filename,varargin)
 %                                Matthew Grivich.
 %
 %                                version 1.13
-LIBVERSION = '1.13';
+LIBVERSION = '1.14';
 % check inputs
 opts = cell2struct(varargin(2:2:end),varargin(1:2:end),2);
 if ~isfield(opts,'OnChunk')
@@ -239,7 +239,7 @@ filesize = getfield(dir(filename),'bytes');
 
 % there is a fast C mex file for the inner loop, but it's 
 % not necessarily available for every platform
-have_mex = exist('load_xdf_innerloop','file');
+have_mex = exist('load_xdf_innerloop', 'file');
 if ~have_mex
     if opts.Verbose
         disp(['NOTE: apparently you are missing a compiled binary version of the inner loop code.',...
