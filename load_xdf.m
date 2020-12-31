@@ -237,34 +237,55 @@ closer = onCleanup(@()close_file(f,filename));  % object that closes the file wh
 
 filesize = getfield(dir(filename),'bytes');
 
+
 % there is a fast C mex file for the inner loop, but it's 
 % not necessarily available for every platform
-have_mex = exist('load_xdf_innerloop', 'file');
-if ~have_mex
-    if opts.Verbose
-        disp(['NOTE: apparently you are missing a compiled binary version of the inner loop code.',...
-            ' Attempting to download...']);
-    end
-    
-    fname = ['load_xdf_innerloop.' mexext];
-    mex_url = ['https://github.com/xdf-modules/xdf-Matlab/releases/download/v',...
-        LIBVERSION, '/', fname];
-    [this_path, ~, ~] = fileparts(mfilename('fullpath'));
-    try
-        websave(fullfile(this_path, fname), mex_url);
-        have_mex = true;
-    catch ME
-        if opts.Verbose
-            disp(['Unable to download the compiled binary version for your platform.',...
-                ' Attempting to compile...']);
+[this_path, ~, ~] = fileparts(mfilename('fullpath'));
+mex_fname = ['load_xdf_innerloop.' mexext];
+
+    function have_mex = assert_working_innerloop
+        have_mex = exist('load_xdf_innerloop', 'file');
+        if have_mex
             try
-                mex(fullfile(this_path, 'load_xdf_innerloop.c'), '-outdir', this_path);
-                have_mex = true;
+                [~, ~] = load_xdf_innerloop(NaN, NaN, 'incorrect', 0, 0);
             catch ME
-                disp('Unable to compile, falling back to slower uncompiled code.');
+                err_msg = split(ME.message);
+                if ~strcmpi(err_msg{2}, 'FormatString')
+                    disp('load_xdf_innerloop mex file found but not functional.');
+                    delete(fullfile(this_path, mex_fname));
+                    have_mex = false;
+                end
             end
         end
+    end
+
+if ~assert_working_innerloop()
+    if opts.Verbose
+        disp(['NOTE: Compiled binary load_xdf_innerloop missing or non-functional.',...
+            ' Attempting to download...']);
+    end
+    mex_url = ['https://github.com/xdf-modules/xdf-Matlab/releases/download/v',...
+        LIBVERSION, '/', mex_fname];
+    try
+        websave(fullfile(this_path, mex_fname), mex_url);
+    catch ME
+        if opts.Verbose
+            disp('Unable to download compiled load_xdf_innerloop for your platform.');
+        end
         %rethrow(ME);
+    end
+end
+
+if ~assert_working_innerloop()
+    if opts.Verbose
+        disp(['NOTE: Download failed or non-functional.',...
+            ' Attempting to compile...']);
+    end
+    try
+        mex(fullfile(this_path, 'load_xdf_innerloop.c'), '-outdir', this_path);
+        have_mex = true;
+    catch ME
+        disp('Unable to compile, falling back to slower uncompiled code.');
     end
 end
 
