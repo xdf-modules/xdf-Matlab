@@ -697,6 +697,26 @@ end
 % === helper functions ===
 % ========================
 
+% scan forward through the file until we find the boundary signature
+function scan_forward(f)
+    block_len = 2^20;
+    signature = uint8([67 165 70 220 203 245 65 15 179 14 213 70 115 131 203 228]);
+    while 1
+        curpos = ftell(f);        
+        block = fread(f,block_len,'*uint8');
+        matchpos = strfind(block',signature);
+        if ~isempty(matchpos)
+            fseek(f,curpos+matchpos+15,'bof');
+            fprintf('  scan forward found a boundary chunk.\n');
+            break;
+        end
+        if length(block) < block_len
+            fprintf('  scan forward reached end of file with no match.\n');
+            break;
+        end
+    end
+end
+
 % read a variable-length integer
 function num = read_varlen_int(f)
 try
