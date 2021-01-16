@@ -259,6 +259,7 @@ mex_fname = ['load_xdf_innerloop.' mexext];
         end
     end
 
+have_mex = assert_working_innerloop();
 if ~assert_working_innerloop()
     if opts.Verbose
         disp(['NOTE: Compiled binary load_xdf_innerloop missing or non-functional.',...
@@ -656,8 +657,16 @@ if ~any(strcmp('all',opts.DisableVendorSpecifics))
 
             if strcmp(streams{k}.info.name,targetName) % Is a BrainVision RDA stream?
                 mkChan = [];
+                if ~iscell(streams{ k }.info.desc.channels.channel)
+                    warning('Channel structure not a cell array (likely a g.tek writer compatibility issue; Using hack to import channel info)');
+                end
                 for iChan = 1:length( streams{ k }.info.desc.channels.channel ) % Find marker index channel (any channel, not necessary last)
-                    if strcmp( streams{ k }.info.desc.channels.channel{ iChan }.label, 'MkIdx' ) && strcmp( streams{ k }.info.desc.channels.channel{ iChan }.type, 'Marker' ) && strcmp( streams{ k }.info.desc.channels.channel{ iChan }.unit, 'Counts (decimal)' )
+                    if iscell(streams{ k }.info.desc.channels.channel)
+                        chanStruct = streams{ k }.info.desc.channels.channel{ iChan };
+                    else
+                        chanStruct = streams{ k }.info.desc.channels.channel( iChan );
+                    end
+                    if strcmp( chanStruct.label, 'MkIdx' ) && strcmp( chanStruct.type, 'Marker' ) && strcmp( chanStruct.unit, 'Counts (decimal)' )
                         mkChan = iChan;
                         break % Only one marker channel expected
                     end
