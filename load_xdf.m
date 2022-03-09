@@ -377,7 +377,10 @@ while 1
             id = length(streams)+1;
             idmap(streamid) = id; 
             % read [Content]
-            header = parse_xml_struct(fread(f,len-6,'*char')');
+            data_uint = fread(f,len-6,'*uint8');
+            data = native2unicode(data_uint, 'UTF-8');
+            header = parse_xml_struct(data);
+
             if ~isfield(header.info, 'desc')
                 header.info.desc = [];
             end
