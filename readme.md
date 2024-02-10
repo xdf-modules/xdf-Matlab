@@ -21,4 +21,4 @@ To use `load_xdf` directly:
   * After a few seconds it should return a cell array with one cell for every stream that was contained in the file. For each stream you get a struct that contains the entire meta-data (including channel descriptions and domain-specific information), as well as the time series data itself (numeric or cell-string array, depending on the value type of the stream), and the time stamps of each sample in the time series. All time stamps (across all streams, even if they were collected on different computers of the lab network) are in the same time domain, so they are synchronized. Note that time stamps from different .xdf files are generally not synchronized (although they will normally be in seconds since the recording machine was turned on).
 
 # Documentation
-As usual in MATLAB, to get the documentation of the function, type `help load_xdf` or `doc load_xdf`.
+As usual, in MATLAB, to get the documentation of the function, type `help load_xdf` or `doc load_xdf`.
