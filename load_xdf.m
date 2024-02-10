@@ -408,8 +408,12 @@ while 1
             % read [StreamId]
             id = idmap(fread(f,1,'uint32'));
             % read [Content]
-            footer = parse_xml_struct(fread(f,len-6,'*char')');
-            streams{id} = hlp_superimposedata(footer,streams{id});
+            try
+                footer = parse_xml_struct(fread(f,len-6,'*char')');
+                streams{id} = hlp_superimposedata(footer,streams{id});
+            catch e
+                fprintf('  got error "%s" (%s), ignoring truncated XML structure.\n',e.identifier,e.message);
+            end
         case 1 % read [FileHeader] chunk
             fileheader = parse_xml_struct(fread(f,len-2,'*char')');
         case 4 % read [ClockOffset] chunk
